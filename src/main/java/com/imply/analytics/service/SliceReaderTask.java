@@ -1,11 +1,12 @@
 package com.imply.analytics.service;
 
 import com.imply.analytics.model.StartEndPair;
+import com.imply.analytics.util.IConstants;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-
+import java.nio.charset.StandardCharsets;
 
 
 public class SliceReaderTask implements Runnable {
@@ -48,6 +49,7 @@ public class SliceReaderTask implements Runnable {
             if (bos.size() > 0) {
                 fileReaderService.handle(bos.toByteArray());
             }
+            fileReaderService.handle(IConstants.DUMMY.getBytes(StandardCharsets.UTF_8));
             fileReaderService.getCyclicBarrier().await();//for testing performance
         } catch (Exception e) {
             e.printStackTrace();

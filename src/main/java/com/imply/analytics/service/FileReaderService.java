@@ -57,6 +57,8 @@ public class FileReaderService {
 			public void run() {
 				System.out.println("use time: "+(System.currentTimeMillis()-startTime));
 				System.out.println("all line: "+counter.get());
+				System.out.println("Shutting Down Reader Executor Service");
+				executorService.shutdown();
 			}
 		});
 		for(StartEndPair pair:startEndPairs){
