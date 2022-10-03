@@ -3,16 +3,16 @@ package com.imply.analytics.service;
 
 public class SplitHandler implements ILineHandler<String>{
 
-    private final FileWriterTask fileWriterTask;
+    private final SplitFileWriterService splitFileWriterService;
 
-    public SplitHandler(FileWriterTask fileWriterTask) {
-        this.fileWriterTask = fileWriterTask;
+    public SplitHandler(SplitFileWriterService splitFileWriterService) {
+        this.splitFileWriterService = splitFileWriterService;
     }
 
 
     public void handle(String line) {
         try {
-            fileWriterTask.produce(line);
+            splitFileWriterService.produce(line);
         } catch (InterruptedException ex) {
             System.out.println(ex);
         }

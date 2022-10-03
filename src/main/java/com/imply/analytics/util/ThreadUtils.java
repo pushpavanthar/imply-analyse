@@ -1,5 +1,6 @@
 package com.imply.analytics.util;
 
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +22,20 @@ public class ThreadUtils {
             pool.shutdownNow();
             // Preserve interrupt status
             Thread.currentThread().interrupt();
+        }
+    }
+
+    public static void cleanUp(String path){
+        File folder = new File(path);
+        File[] files = folder.listFiles();
+        if(files!=null) { //some JVMs return null for empty dirs
+            for(File f: files) {
+                if(f.isDirectory()) {
+                    cleanUp(f.getPath());
+                } else {
+                    f.delete();
+                }
+            }
         }
     }
 }

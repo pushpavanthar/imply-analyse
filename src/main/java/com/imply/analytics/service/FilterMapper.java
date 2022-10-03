@@ -17,7 +17,7 @@ public class FilterMapper {
     public FilterMapper(String inputDir, String filteredOutput) {
         this.inputDir = inputDir;
         this.filteredOutput = filteredOutput;
-        cleanUp(filteredOutput);
+        initialize();
     }
 
     public void start(Integer filter) throws FileNotFoundException {
@@ -61,27 +61,17 @@ public class FilterMapper {
                     }
                 });
             osw.close();
-            System.out.println("Total filtered Users visiting " + filter + "distinct pages = "+counter.get());
+            System.out.println("Total filtered Users visiting " + filter + " distinct pages = "+counter.get());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    private void cleanUp(String path){
-        File folder = new File(path);
-        File[] files = folder.listFiles();
-        if(files!=null) { //some JVMs return null for empty dirs
-            for(File f: files) {
-                if(f.isDirectory()) {
-                    cleanUp(f.getPath());
-                } else {
-                    f.delete();
-                }
-            }
-        }
-    }
 
+    public void initialize() {
+        ThreadUtils.cleanUp(this.filteredOutput);
+    }
 
 
     public void shutdown(){

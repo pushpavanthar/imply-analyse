@@ -1,7 +1,6 @@
 package com.imply.analytics.service;
 
 import com.imply.analytics.model.StartEndPair;
-import com.imply.analytics.util.ThreadUtils;
 import lombok.Data;
 
 import java.io.*;
@@ -9,24 +8,24 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Data
-public class FileReaderService {
+public class FileReaderService implements IService{
 	private int threadSize;
 	private String charset;
 	private int bufferSize;
 	private ILineHandler<String> handle;
-	private ExecutorService  executorService;
+	private ExecutorService sharedExecutorService;
 	private long fileLength;
 	private RandomAccessFile rAccessFile;
 	private Set<StartEndPair> startEndPairs;
 	private CyclicBarrier cyclicBarrier;
 	private AtomicLong counter = new AtomicLong(0);
+	private IService nextService;
 	
-	private FileReaderService(File file, ILineHandler<String> handle, String charset, int bufferSize, int threadSize){
+	private FileReaderService(ExecutorService sharedExecutorService, File file, ILineHandler<String> handle, String charset, int bufferSize, int threadSize, IService nextService){
 		this.fileLength = file.length();
 		this.handle = handle;
 		this.charset = charset;
@@ -37,11 +36,13 @@ public class FileReaderService {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		this.executorService = Executors.newFixedThreadPool(threadSize);
+		this.sharedExecutorService = sharedExecutorService;
 		startEndPairs = new HashSet<StartEndPair>();
+		this.nextService = nextService;
 	}
-	
-	public void start(){
+
+	@Override
+	public void initialize() {
 		long everySize = this.fileLength/this.threadSize;
 		try {
 			calculateStartEnd(0, everySize);
@@ -49,24 +50,29 @@ public class FileReaderService {
 			e.printStackTrace();
 			return;
 		}
-		
+
 		final long startTime = System.currentTimeMillis();
 		cyclicBarrier = new CyclicBarrier(startEndPairs.size(),new Runnable() {
-			
+
 			@Override
 			public void run() {
 				System.out.println("use time: "+(System.currentTimeMillis()-startTime));
 				System.out.println("all line: "+counter.get());
-				System.out.println("Shutting Down Reader Executor Service");
-				executorService.shutdown();
+				System.out.println("Invoking next service from "+this.getClass().getCanonicalName());
+				sharedExecutorService.shutdown();
+//				nextService.start();
 			}
 		});
+	}
+
+	public void start(){
+		initialize();
 		for(StartEndPair pair:startEndPairs){
 			System.out.println("Allocate shards："+pair);
-			this.executorService.execute(new SliceReaderTask(pair, this));
+			this.sharedExecutorService.execute(new SliceReaderTask(pair, this));
 		}
 	}
-	
+
 	private void calculateStartEnd(long start,long size) throws IOException{
 		if(start>fileLength-1){
 			return;
@@ -103,8 +109,8 @@ public class FileReaderService {
 	public void shutdown(){
 		try {
 			this.rAccessFile.close();
-			this.executorService.shutdown();
-			this.executorService.awaitTermination(60, TimeUnit.SECONDS);
+			this.sharedExecutorService.shutdown();
+			this.sharedExecutorService.awaitTermination(60, TimeUnit.SECONDS);
 
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
@@ -134,6 +140,9 @@ public class FileReaderService {
 		private int bufferSize=1024*1024;
 		private ILineHandler handle;
 		private File file;
+		private ExecutorService sharedExecutorService;
+		private IService nextService;
+
 		public Builder(String file,ILineHandler handle){
 			this.file = new File(file);
 			if(!this.file.exists())
@@ -155,9 +164,19 @@ public class FileReaderService {
 			this.bufferSize = bufferSize;
 			return this;
 		}
+
+		public Builder withSharedExecutorService(ExecutorService executorService) {
+			this.sharedExecutorService = executorService;
+			return this;
+		}
+
+		public Builder withNextService(IService nextService) {
+			this.nextService = nextService;
+			return this;
+		}
 		
 		public FileReaderService build(){
-			return new FileReaderService(this.file,this.handle,this.charset,this.bufferSize,this.threadSize);
+			return new FileReaderService(this.sharedExecutorService, this.file,this.handle,this.charset,this.bufferSize,this.threadSize, this.nextService);
 		}
 	}
 	
