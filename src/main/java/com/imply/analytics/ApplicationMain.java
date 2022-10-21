@@ -7,7 +7,7 @@ public class ApplicationMain {
 
 	public static void main(String[] args) throws InterruptedException {
 
-		UserSessionController controller = new UserSessionController();
+		UserSessionController controller = new UserSessionController(args[0]);
 		controller.initialize();
 
 		while(true){
@@ -20,8 +20,6 @@ public class ApplicationMain {
 				} else {
 					break;
 				}
-
-
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}

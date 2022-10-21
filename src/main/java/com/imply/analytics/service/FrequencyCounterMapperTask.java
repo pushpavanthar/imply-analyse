@@ -1,5 +1,7 @@
 package com.imply.analytics.service;
 
+import com.imply.analytics.util.IConstants;
+
 import java.io.*;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,17 +11,17 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 public class FrequencyCounterMapperTask implements Runnable{
-    private final String location = "splitsO";
-    private final String srcLocation = "splits";
-    private final String storagePrefix;
+    private final String dstLocation;
+    private final String srcLocation;
     private final Map<Integer, Set<String>> freqCounter;
     private final Integer fileIndex;
     private final CyclicBarrier barrier;
 
-    public FrequencyCounterMapperTask(String storagePrefix, Integer fileIndex, CyclicBarrier barrier) {
+    public FrequencyCounterMapperTask(String srcLocation, String dstLocation, Integer fileIndex, CyclicBarrier barrier) {
         this.fileIndex = fileIndex;
         this.barrier = barrier;
-        this.storagePrefix = storagePrefix;
+        this.srcLocation = srcLocation;
+        this.dstLocation = dstLocation;
         this.freqCounter = new HashMap<>();
     }
 
@@ -27,7 +29,7 @@ public class FrequencyCounterMapperTask implements Runnable{
     public void run() {
         try
         {
-            File file = new File(storagePrefix + srcLocation+"/"+fileIndex);
+            File file = new File( srcLocation + IConstants.FILE_SEPARATOR + fileIndex + IConstants.FILE_SUFFIX);
             FileReader fr = new FileReader(file);
             BufferedReader br = new BufferedReader(fr);
             String line;
@@ -43,7 +45,7 @@ public class FrequencyCounterMapperTask implements Runnable{
                 }
             }
             fr.close();
-            File fout = new File(storagePrefix+location+"/"+fileIndex+".txt");
+            File fout = new File(dstLocation + IConstants.FILE_SEPARATOR + fileIndex + IConstants.FILE_SUFFIX);
             FileOutputStream fos = new FileOutputStream(fout);
 
             OutputStreamWriter osw = new OutputStreamWriter(fos);

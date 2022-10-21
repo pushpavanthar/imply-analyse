@@ -1,3 +1,4 @@
 /target
 .idea
 imply-analyse.iml
+*.DS_Store

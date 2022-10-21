@@ -58,9 +58,7 @@ public class FileReaderService implements IService{
 			public void run() {
 				System.out.println("use time: "+(System.currentTimeMillis()-startTime));
 				System.out.println("all line: "+counter.get());
-				System.out.println("Invoking next service from "+this.getClass().getCanonicalName());
 				sharedExecutorService.shutdown();
-//				nextService.start();
 			}
 		});
 	}
@@ -68,7 +66,7 @@ public class FileReaderService implements IService{
 	public void start(){
 		initialize();
 		for(StartEndPair pair:startEndPairs){
-			System.out.println("Allocate shards："+pair);
+			System.out.println("Allocate shards ："+ pair);
 			this.sharedExecutorService.execute(new SliceReaderTask(pair, this));
 		}
 	}
@@ -106,7 +104,7 @@ public class FileReaderService implements IService{
 	
 	
 	
-	public void shutdown(){
+	public void teardown(){
 		try {
 			this.rAccessFile.close();
 			this.sharedExecutorService.shutdown();

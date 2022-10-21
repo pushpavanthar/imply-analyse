@@ -2,7 +2,7 @@ package com.imply.analytics.service;
 
 import com.imply.analytics.model.IPartitioner;
 import com.imply.analytics.util.IConstants;
-import com.imply.analytics.util.ThreadUtils;
+import com.imply.analytics.util.Util;
 import lombok.SneakyThrows;
 
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ public class SplitFileWriterService implements IService{
 
     @Override
     public void initialize() {
-        ThreadUtils.cleanUp(storagePath);
+        Util.cleanUp(storagePath);
         cyclicBarrier = new CyclicBarrier(partitionCount,new Runnable() {
             @SneakyThrows
             @Override
@@ -62,12 +62,13 @@ public class SplitFileWriterService implements IService{
         for(int index = 0; index < partitionCount; index++){
             BlockingQueue<String> sharedQueue = new ArrayBlockingQueue<String>(1000);
             sharedQueueList.add(sharedQueue);
-            this.writerExecutorService.execute(new LineConsumer<String>(sharedQueue, storagePath+"/"+index, 10, partitionCount, cyclicBarrier));
+            this.writerExecutorService.execute(new LineConsumerTask<String>(sharedQueue, storagePath+"/"+index, 10, partitionCount, cyclicBarrier));
         }
     }
 
-    public void shutdown(){
-//        ThreadUtils.shutdownAndAwaitTermination(this.writerExecutorService);
+    public void teardown(){
+        sharedQueueList = null;
+        writerExecutorService = null;
     }
 
 

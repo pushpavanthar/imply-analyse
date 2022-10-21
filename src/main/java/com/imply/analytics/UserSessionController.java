@@ -1,10 +1,11 @@
 package com.imply.analytics;
 
+import com.imply.analytics.model.SimpleHashPartitioner;
 import com.imply.analytics.service.*;
+import com.imply.analytics.util.IConstants;
 
 import java.io.FileNotFoundException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,39 +18,36 @@ public class UserSessionController {
     SplitFileWriterService splitFileWriterService;
     SplitHandler splitHandler;
     FileReaderService fileReaderService;
-    FilterMapper filterMapper;
+    FilterMapperService filterMapper;
     CountDownLatch latch;
 
-    public UserSessionController() {
+    public UserSessionController(String inputFile) {
         latch = new CountDownLatch(1);
         sharedService = Executors.newFixedThreadPool(threadSize);
-        countMapperService = new CountMapperService(sharedService, "src/main/resources/splotsO", partitionCount, latch);
-        splitFileWriterService = new SplitFileWriterService(sharedService, "src/main/resources/splits",partitionCount, new SimpleHashPartitioner(partitionCount), countMapperService);
+        countMapperService = new CountMapperService(sharedService, IConstants.MAP0_LOCATION, IConstants.MAP1_LOCATION, partitionCount, latch);
+        splitFileWriterService = new SplitFileWriterService(sharedService, IConstants.MAP0_LOCATION,partitionCount, new SimpleHashPartitioner(partitionCount), countMapperService);
         splitHandler = new SplitHandler(splitFileWriterService);
-        fileReaderService = new FileReaderService.Builder("src/main/resources/access.log", splitHandler)
+        fileReaderService = new FileReaderService.Builder(inputFile, splitHandler)
             .withTreahdSize(threadSize)
             .withBufferSize(1024*1024)
             .withSharedExecutorService(Executors.newFixedThreadPool(threadSize))
             .withNextService(splitFileWriterService)
             .build();
 
-        filterMapper = new FilterMapper("src/main/resources/splitsO", "src/main/resources/result/output.txt");
+        filterMapper = new FilterMapperService(IConstants.MAP1_LOCATION, IConstants.OUTPUT_FILE_LOCATION );
     }
 
     public void initialize() throws InterruptedException {
-        System.out.println(System.currentTimeMillis());
+        long startTime = System.currentTimeMillis();
+        System.out.println(startTime);
         splitFileWriterService.start();
         fileReaderService.start();
         latch.await();
+        long endTime = System.currentTimeMillis();
+        System.out.println("Time taken to complete reading input file and generating userId maps = "+ (endTime - startTime));
     }
 
     public void generateFilteredUsers(Integer input) throws FileNotFoundException {
-//        try{
-//            Thread.sleep(60000);
-//        }catch (InterruptedException ignored) {
-//
-//        }
-
         filterMapper.start(input);
     }
 }
